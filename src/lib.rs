@@ -3,10 +3,10 @@ extern crate reqwest;
 extern crate serde_json;
 
 use serde::{Deserialize, Serialize};
-use serde_json::{Number, Value};
-use std::error::Error;
+use serde_json::{Number, Value, Error};
 use reqwest::Method;
 use std::fmt::Display;
+use std::collections::HashMap;
 
 
 #[derive(Debug)]
@@ -15,7 +15,7 @@ pub enum CanIStreamError {
     NoJson(String)
 }
 
-impl Error for CanIStreamError {}
+impl std::error::Error for CanIStreamError {}
 
 impl Display for CanIStreamError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -27,8 +27,6 @@ impl Display for CanIStreamError {
 }
 
 type Result<T> = std::result::Result<T, CanIStreamError>;
-
-
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "snake_case")]
@@ -118,6 +116,14 @@ pub struct Movie {
     pub cinema_release_week: Option<String>
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Provider {
+    id: u64,
+    clear_name: String,
+    short_name: String,
+    technical_name: String,
+    icon_url: String
+}
 
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct Params {
@@ -198,10 +204,10 @@ fn request(method: reqwest::Method, endpoint: String, params: Params) -> Result<
         Ok(mut r) => {
             match r.json() {
                 Ok(j) => Ok(j),
-                Err(e) => Err(CanIStreamError::NoJson(e.description().into())),
+                Err(e) => Err(CanIStreamError::NoJson(e.to_string())),
             }
         },
-        Err(e) => Err(CanIStreamError::RequestError(e.description().into())),
+        Err(e) => Err(CanIStreamError::RequestError(e.to_string())),
     }
 }
 
@@ -235,10 +241,33 @@ pub fn search(movie: &str) -> Result<Vec<Movie>> {
     Ok(movies)
 }
 
+pub fn get_providers() -> Result<HashMap<u64, Provider>> {
+    let locale = "en_US";
+    let url = format!("/providers/locale/{}", locale);
+
+    let j = request(Method::GET, url, Params::default())?;
+
+    let mut providers = HashMap::new();
+
+    if let Some(arr_json) = j.as_array() {
+        for prov_json in arr_json {
+            let provider: std::result::Result<Provider, Error> = serde_json::from_value(prov_json.clone());
+            match provider {
+                Ok(p) => { providers.insert(p.id, p); },
+                Err(e) => eprintln!("Error processing provider: {:?}", e.to_string()),
+            }
+        }
+    }
+
+    Ok(providers)
+}
+
 #[cfg(test)]
 mod tests {
 
     use super::*;
+    use std::error::Error;
+
 
     #[test]
     fn test_search() {
@@ -247,6 +276,18 @@ mod tests {
 
         match movies {
             Ok(m) => assert_ne!(0, m.len()),
+            Err(e) => {
+                eprintln!("Error: {}", e.description());
+                assert!(false);
+            },
+        }
+    }
+
+    #[test]
+    fn test_providers() {
+        let providers = get_providers();
+        match providers {
+            Ok(p) => assert!(p.len() >= 104),
             Err(e) => {
                 eprintln!("Error: {}", e.description());
                 assert!(false);
