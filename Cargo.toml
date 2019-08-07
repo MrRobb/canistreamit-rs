@@ -6,6 +6,7 @@ edition = "2018"
 
 description = "Check if you can stream something in a service, check prices, scores and popularity."
 repository = "https://github.com/MrRobb/canistreamit-rs"
+documentation = "https://docs.rs/canistreamit"
 readme = "README.md"
 keywords = ["canistreamit", "justwatch", "netflix", "tomatoes", "imdb"]
 categories = ["api-bindings"]
