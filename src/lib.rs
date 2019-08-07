@@ -8,13 +8,13 @@ use serde_json::Number;
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "snake_case")]
-enum TitleType {
+pub enum TitleType {
     Movie,
     Show
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-enum ScoreType {
+pub enum ScoreType {
     #[serde(alias = "imdb:score")]
     ImdbScore,
     #[serde(alias = "imdb:popularity")]
@@ -46,7 +46,7 @@ enum ScoreType {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct OfferUrls {
+pub struct OfferUrls {
     standard_web: String,
     deeplink_ios: Option<String>,
     deeplink_android: Option<String>,
@@ -54,7 +54,7 @@ struct OfferUrls {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct Offer {
+pub struct Offer {
     monetization_type: String,
     provider_id: u64,
     retail_price: Option<f64>,
@@ -67,13 +67,13 @@ struct Offer {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct Score {
+pub struct Score {
     provider_type: ScoreType,
     value: Number
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct Movie {
+pub struct Movie {
     id: u64,
     title: String,
     full_path: String,
@@ -207,7 +207,7 @@ fn request(method: reqwest::Method, endpoint: String, params: Params) -> Vec<Mov
     movies
 }
 
-fn search(movie: &str) -> Vec<Movie> {
+pub fn search(movie: &str) -> Vec<Movie> {
 
     let locale = "en_US";
     let url = format!("/titles/{}/popular", locale);
