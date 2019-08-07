@@ -285,7 +285,9 @@ mod tests {
 
     #[test]
     fn test_providers() {
+
         let providers = get_providers();
+        
         match providers {
             Ok(p) => assert!(p.len() >= 104),
             Err(e) => {
