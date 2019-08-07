@@ -1,8 +1,18 @@
 [package]
-name = "canistreamit-rs"
+name = "canistreamit"
 version = "0.1.0"
 authors = ["Roberto <rob.ariosa@hotmail.com>"]
 edition = "2018"
+
+description = "Check if you can stream something in a service, check prices, scores and popularity."
+repository = "https://github.com/MrRobb/canistreamit-rs"
+readme = "README.md"
+keywords = ["canistreamit", "justwatch", "netflix", "tomatoes", "imdb"]
+categories = ["api-bindings"]
+license = "MIT/Apache-2.0"
+
+[badges]
+maintenance = { status = "experimental" }
 
 [dependencies]
 reqwest = "0.9.19"
