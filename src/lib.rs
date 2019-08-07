@@ -3,7 +3,31 @@ extern crate reqwest;
 extern crate serde_json;
 
 use serde::{Deserialize, Serialize};
-use serde_json::Number;
+use serde_json::{Number, Value};
+use std::error::Error;
+use reqwest::Method;
+use std::fmt::Display;
+
+
+#[derive(Debug)]
+pub enum CanIStreamError {
+    RequestError(String),
+    NoJson(String)
+}
+
+impl Error for CanIStreamError {}
+
+impl Display for CanIStreamError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            CanIStreamError::RequestError(e) => write!(f, "{}", e),
+            CanIStreamError::NoJson(e) => write!(f, "{}", e),
+        }
+    }
+}
+
+type Result<T> = std::result::Result<T, CanIStreamError>;
+
 
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -45,127 +69,112 @@ pub enum ScoreType {
     TmdbPopularity,
 }
 
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct OfferUrls {
-    standard_web: String,
-    deeplink_ios: Option<String>,
-    deeplink_android: Option<String>,
-    deeplink_android_tv: Option<String>
+    pub standard_web: String,
+    pub deeplink_ios: Option<String>,
+    pub deeplink_android: Option<String>,
+    pub deeplink_android_tv: Option<String>
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Offer {
-    monetization_type: String,
-    provider_id: u64,
-    retail_price: Option<f64>,
-    currency: Option<String>,
-    urls: OfferUrls,
-    presentation_type: String,
-    date_created_provider_id: String,
-    date_created: String,
-    country: String
+    pub monetization_type: String,
+    pub provider_id: u64,
+    pub retail_price: Option<f64>,
+    pub currency: Option<String>,
+    pub urls: OfferUrls,
+    pub presentation_type: String,
+    pub date_created_provider_id: String,
+    pub date_created: String,
+    pub country: String
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Score {
-    provider_type: ScoreType,
-    value: Number
+    pub provider_type: ScoreType,
+    pub value: Number
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Movie {
-    id: u64,
-    title: String,
-    full_path: String,
-    poster: Option<String>,
-    short_description: Option<String>,
-    original_release_year: Option<u64>,
-    tmdb_popularity: f64,
-    object_type: TitleType,
-    original_title: String,
-    localized_release_date: Option<String>,
-    offers: Option<Vec<Offer>>,
-    scoring: Vec<Score>,
-    original_language: Option<String>,
-    age_certification: Option<String>,
-    runtime: Option<u64>,
-    cinema_release_date: Option<String>,
-    cinema_release_week: Option<String>
+    pub id: u64,
+    pub title: String,
+    pub full_path: String,
+    pub poster: Option<String>,
+    pub short_description: Option<String>,
+    pub original_release_year: Option<u64>,
+    pub tmdb_popularity: f64,
+    pub object_type: TitleType,
+    pub original_title: String,
+    pub localized_release_date: Option<String>,
+    pub offers: Option<Vec<Offer>>,
+    pub scoring: Vec<Score>,
+    pub original_language: Option<String>,
+    pub age_certification: Option<String>,
+    pub runtime: Option<u64>,
+    pub cinema_release_date: Option<String>,
+    pub cinema_release_week: Option<String>
 }
 
+
 #[derive(Serialize, Deserialize, Debug, Default)]
-struct Params {
-    content_types: Option<String>,
-    presentation_types: Option<String>,
-    providers: Option<String>,
-    genres: Option<String>,
-    languages: Option<String>,
-    release_year_from: Option<String>,
-    release_year_until: Option<String>,
-    monetization_types: Option<String>,
-    min_price: Option<String>,
-    max_price: Option<String>,
-    scoring_filter_types: Option<String>,
-    cinema_release: Option<String>,
-    query: Option<String>,
-    page: Option<String>,
-    page_size: Option<String>,
+pub struct Params {
+    pub content_types: Option<String>,
+    pub presentation_types: Option<String>,
+    pub providers: Option<String>,
+    pub genres: Option<String>,
+    pub languages: Option<String>,
+    pub release_year_from: Option<String>,
+    pub release_year_until: Option<String>,
+    pub monetization_types: Option<String>,
+    pub min_price: Option<String>,
+    pub max_price: Option<String>,
+    pub scoring_filter_types: Option<String>,
+    pub cinema_release: Option<String>,
+    pub query: Option<String>,
+    pub page: Option<String>,
+    pub page_size: Option<String>,
 }
 
 impl Params {
-
-    fn default() -> Self {
-        Self {
-            content_types: None,
-            presentation_types: None,
-            providers: None,
-            genres: None,
-            languages: None,
-            release_year_from: None,
-            release_year_until: None,
-            monetization_types: None,
-            min_price: None,
-            max_price: None,
-            scoring_filter_types: None,
-            cinema_release: None,
-            query: None,
-            page: None,
-            page_size: None
-        }
-    }
-
     fn movie_title(mut self, movie: &str) -> Self {
         self.query = Some(movie.into());
         self
     }
-
 }
 
 impl ToString for Params {
     fn to_string(&self) -> String {
+
         let mut url: String = "".into();
-        let json: serde_json::Value = serde_json::json!(serde_json::to_string(self).unwrap());
-        if json.is_object() {
-            for (i, (key, val)) in json.as_object().unwrap().iter().enumerate() {
-                if i != 0 {
-                    url.push('&');
+
+        if let Ok(json) = serde_json::to_string(self) {
+            if let Some(j) = serde_json::json!(json).as_object() {
+                for (i, (key, val)) in j.iter().enumerate() {
+                    if i != 0 {
+                        url.push('&');
+                    }
+                    if let Some(val_str) = val.as_str() {
+                        url.push_str(key);
+                        url.push('=');
+                        url.push_str(val_str);
+                    }
                 }
-                url.push_str(key);
-                url.push('=');
-                url.push_str(val.as_str().unwrap());
             }
         }
+
         url
     }
 }
 
-fn request(method: reqwest::Method, endpoint: String, params: Params) -> Vec<Movie> {
+fn request(method: reqwest::Method, endpoint: String, params: Params) -> Result<Value> {
 
     // Base url
     let url = format!("https://apis.justwatch.com/content{}", endpoint);
 
     // Create request
-
     let response = match &method {
         &reqwest::Method::GET => {
 
@@ -176,8 +185,6 @@ fn request(method: reqwest::Method, endpoint: String, params: Params) -> Vec<Mov
         }
         &reqwest::Method::POST => {
 
-            println!("{}", serde_json::to_string(&params).unwrap());
-
             // Add params to body
             reqwest::Client::new()
                 .post(url.as_str())
@@ -187,27 +194,18 @@ fn request(method: reqwest::Method, endpoint: String, params: Params) -> Vec<Mov
         _ => unreachable!()
     };
 
-    let mut movies = vec![];
-    let j: serde_json::Value = response.unwrap().json().unwrap();
-
-    println!("{}", j);
-
-    for movies_json in j.get("items") {
-        for movie_json in movies_json.as_array().unwrap() {
-            let movie = serde_json::from_value(movie_json.clone());
-            if movie.is_ok() {
-                movies.push(movie.unwrap());
+    match response {
+        Ok(mut r) => {
+            match r.json() {
+                Ok(j) => Ok(j),
+                Err(e) => Err(CanIStreamError::NoJson(e.description().into())),
             }
-            else {
-                println!("error = {:?}", movie.err().unwrap());
-            }
-        }
+        },
+        Err(e) => Err(CanIStreamError::RequestError(e.description().into())),
     }
-
-    movies
 }
 
-pub fn search(movie: &str) -> Vec<Movie> {
+pub fn search(movie: &str) -> Result<Vec<Movie>> {
 
     let locale = "en_US";
     let url = format!("/titles/{}/popular", locale);
@@ -215,7 +213,26 @@ pub fn search(movie: &str) -> Vec<Movie> {
     let params: Params = Params::default()
         .movie_title(movie);
 
-    request(reqwest::Method::POST, url, params)
+    let j = request(reqwest::Method::POST, url, params)?;
+    let mut movies = vec![];
+
+    if let Some(items_json) = j.get("items") {
+        if let Some(movies_json) = items_json.as_array() {
+            for movie_json in movies_json {
+                let movie = serde_json::from_value(movie_json.clone());
+                match movie {
+                    Ok(m) => {
+                        movies.push(m);
+                    },
+                    Err(e) => {
+                        eprintln!("Error adding title: {:?}", e);
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(movies)
 }
 
 #[cfg(test)]
@@ -224,8 +241,16 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_search_movie() {
+    fn test_search() {
+
         let movies = search("Interstellar");
-        assert_ne!(0, movies.len());
+
+        match movies {
+            Ok(m) => assert_ne!(0, m.len()),
+            Err(e) => {
+                eprintln!("Error: {}", e.description());
+                assert!(false);
+            },
+        }
     }
 }
